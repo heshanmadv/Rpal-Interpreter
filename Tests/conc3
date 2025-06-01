@@ -1,0 +1,2 @@
+let S = 'CIS' and T = '104B'
+in Print(Conc S T)

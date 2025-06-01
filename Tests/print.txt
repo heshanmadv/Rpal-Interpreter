@@ -1,0 +1,2 @@
+let Inc = fn x. x + 1 
+    in Print (Inc 7)
