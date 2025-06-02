@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List
 from src.rpal_token import Token, TokenType
 from src.lexer import Lexer
 from src.screener import Screener
@@ -9,88 +9,9 @@ from src.errors import SyntaxError, LexicalError
 
 class Parser:
     """
-    Implements a recursive‐descent parser for RPAL, building an AST of ASTNode objects.
-    The grammar (phrase‐structure) is:
-
-    E   -> 'let' D 'in' E           ⇒ 'let'
-         | 'fn' Vb+ '.' E           ⇒ 'lambda'
-         | Ew
-
-    Ew  -> T 'where' Dr             ⇒ 'where'
-         | T
-
-    T   -> Ta (',' Ta)+             ⇒ 'tau'
-         | Ta
-
-    Ta  -> Ta 'aug' Tc              ⇒ 'aug'
-         | Tc
-
-    Tc  -> B '->' Tc '|' Tc         ⇒ '->'
-         | B
-
-    B   -> B 'or' Bt                ⇒ 'or'
-         | Bt
-
-    Bt  -> Bt '&' Bs                ⇒ '&'
-         | Bs
-
-    Bs  -> 'not' Bp                 ⇒ 'not'
-         | Bp
-
-    Bp  -> A ('gr'|'>' ) A          ⇒ 'gr'
-         | A ('ge'|'>=') A          ⇒ 'ge'
-         | A ('ls'|'<' ) A          ⇒ 'ls'
-         | A ('le'|'<=') A          ⇒ 'le'
-         | A 'eq' A                 ⇒ 'eq'
-         | A 'ne' A                 ⇒ 'ne'
-         | A
-
-    A   -> A '+' At                 ⇒ '+'
-         | A '-' At                 ⇒ '-'
-         | '+' At                   ⇒ 'neg'
-         | '-' At                   ⇒ 'neg'
-         | At
-
-    At  -> At '*' Af                ⇒ '*'
-         | At '/' Af                ⇒ '/'
-         | Af
-
-    Af  -> Ap '**' Af               ⇒ '**'
-         | Ap
-
-    Ap  -> Ap '@' '<IDENTIFIER>' R  ⇒ '@'
-         | R
-
-    R   -> R Rn                     ⇒ 'gamma'
-         | Rn
-
-    Rn  -> '<IDENTIFIER>'
-         | '<INTEGER>'
-         | '<STRING>'
-         | 'true'                   ⇒ '<true>'
-         | 'false'                  ⇒ '<false>'
-         | 'nil'                    ⇒ '<nil>'
-         | 'dummy'                  ⇒ '<dummy>'
-         | '(' E ')'
-
-    D   -> Da 'within' D            ⇒ 'within'
-         | Da
-
-    Da  -> Dr ('and' Dr)+           ⇒ 'and'
-         | Dr
-
-    Dr  -> 'rec' Db                 ⇒ 'rec'
-         | Db
-
-    Db  -> Vl '=' E                 ⇒ '='
-         | '<IDENTIFIER>' Vb+ '=' E ⇒ 'function_form'
-         | '(' D ')'
-
-    Vb  -> '<IDENTIFIER>'
-         | '(' Vl ')'
-         | '(' ')'                  ⇒ '()'
-
-    Vl  -> '<IDENTIFIER>' (',' '<IDENTIFIER>')*   ⇒ tuple of identifiers
+    Recursive‐descent parser for RPAL, producing an AST of ASTNode objects.
+    We never introduce a `tuple_vars` node; each parameter becomes a direct child
+    of 'function_form'.
     """
 
     def __init__(self, source_code: str) -> None:
@@ -110,7 +31,7 @@ class Parser:
 
     def parse(self) -> ASTNode:
         """
-        Entry point: parse an entire expression (E). At the end, exactly one ASTNode must remain.
+        Parse an entire expression (E). At the end, exactly one ASTNode remains.
         """
         node = self.E()
         if self.current < len(self.tokens):
@@ -149,7 +70,7 @@ class Parser:
         raise SyntaxError(expected_type, tok.type, tok.line)
 
     # ─────────────────────────────────────────────────────────────────────
-    # Grammar productions (each returns an ASTNode)
+    # Grammar productions (return ASTNode)
     # ─────────────────────────────────────────────────────────────────────
 
     def E(self) -> ASTNode:
@@ -158,7 +79,7 @@ class Parser:
         """
         tok = self._peek()
         if tok.content == "let":
-            self._advance()  # consume 'let'
+            self._advance()
             left = self.D()
             self._match("in")
             right = self.E()
@@ -168,19 +89,20 @@ class Parser:
             return node
 
         elif tok.content == "fn":
-            self._advance()  # consume 'fn'
+            self._advance()
             var_nodes: List[ASTNode] = []
-            # Must have Vb+  → at least one Vb
+            # Must have at least one Vb
             if not (self._peek().type == "<IDENTIFIER>" or self._peek().content == "("):
                 raise SyntaxError("Vb", self._peek().content,
                                   self._peek().line)
 
             while self._peek().type == "<IDENTIFIER>" or self._peek().content == "(":
-                var_nodes.append(self.Vb())
+                var_nodes.extend(self.Vb_list())
 
             self._match(".")
             body = self.E()
             lam = ASTNode("lambda")
+            # First child: each identifier from Vb_list
             for v in var_nodes:
                 lam.add_child(v)
             lam.add_child(body)
@@ -309,7 +231,6 @@ class Parser:
         cmp_ops = {"gr", ">", "ge", ">=", "ls", "<", "le", "<=", "eq", "ne"}
         if self._peek().content in cmp_ops:
             op_tok = self._advance().content
-            # Normalize multi‐character tokens: '>'→'gr', '>='→'ge', '<'→'ls', '<='→'le'
             if op_tok == ">":
                 op = "gr"
             elif op_tok == ">=":
@@ -319,7 +240,7 @@ class Parser:
             elif op_tok == "<=":
                 op = "le"
             else:
-                op = op_tok  # one of gr, ge, ls, le, eq, ne
+                op = op_tok
             right = self.A()
             parent = ASTNode(op)
             parent.add_child(node)
@@ -335,12 +256,15 @@ class Parser:
           | '-' At          ⇒ 'neg'
           | At
         """
-        # Handle unary +/−
-        if self._peek().content in ("+", "-") and self.tokens[self.current + 1].type != "<INTEGER>":
+        # Unary +/− when not followed by an integer literal
+        if self._peek().content in ("+", "-") and (
+            self.current + 1 < len(self.tokens)
+            and self.tokens[self.current + 1].type != "<INTEGER>"
+        ):
             sign = self._advance().content
             node = self.At()
             parent = ASTNode(sign)
-            parent.add_child(ASTNode("0"))  # unary expresses as (0 +/− At)
+            parent.add_child(ASTNode("0"))
             parent.add_child(node)
             return parent
 
@@ -453,7 +377,10 @@ class Parser:
             self._match(")")
             return node
         raise SyntaxError(
-            "identifier, integer, string, 'true', 'false', 'nil', 'dummy', or '('", tok.content, tok.line)
+            "identifier, integer, string, 'true', 'false', 'nil', 'dummy' or '('",
+            tok.content,
+            tok.line,
+        )
 
     def D(self) -> ASTNode:
         """
@@ -501,94 +428,117 @@ class Parser:
 
     def Db(self) -> ASTNode:
         """
-        Db → Vl '=' E                         ⇒ '='
-           | '<IDENTIFIER>' Vb+ '=' E         ⇒ 'function_form'
-           | '(' D ')'                        ⇒ grouped definition
+        Db → '(' D ')'                         ⇒ grouped definition
+           | Vl '=' E                          ⇒ '=' (simple let‐binding of a tuple of vars)
+           | '<IDENTIFIER>' Vb+ '=' E          ⇒ 'function_form'
+               (wrap in comma‐node only if >1 parameter)
         """
         # Case: '(' D ')'
         if self._peek().content == "(":
-            self._advance()              # consume '('
+            self._advance()
             node = self.D()
             self._match(")")
             return node
 
-        # Must start with an <IDENTIFIER> for either binding or function_form
+        # Next must be an <IDENTIFIER>
         id_tok = self._match_type("<IDENTIFIER>")
         id_node = ASTNode(f"<ID:{id_tok.content}>")
         nxt_tok = self._peek()
 
-        # Case: simple binding X = E
+        # Case: simple binding X = E  (where X is a single identifier)
         if nxt_tok.content == "=":
-            self._advance()              # consume '='
+            self._advance()
             rhs = self.E()
             parent = ASTNode("=")
             parent.add_child(id_node)
             parent.add_child(rhs)
             return parent
 
-        # Case: function_form: <IDENTIFIER> Vb+ '=' E
-        # i.e. at least one Vb must follow
-        if nxt_tok.type == "<IDENTIFIER>" or nxt_tok.content == "(":
-            var_nodes: List[ASTNode] = []
-            # parse one or more Vb
-            while self._peek().type == "<IDENTIFIER>" or self._peek().content == "(":
-                var_nodes.append(self.Vb())
+        # Case: function_form with parentheses: X ( Vl ) = E
+        if nxt_tok.content == "(":
+            self._advance()  # consume '('
+            # returns a list of <ID:…> nodes
+            vl_ids: List[ASTNode] = self.Vl_list_inner()
+            self._match(")")
             self._match("=")
             rhs = self.E()
             parent = ASTNode("function_form")
             parent.add_child(id_node)
-            for v in var_nodes:
-                parent.add_child(v)
+
+            # If more than one parameter, wrap in comma‐node;
+            if len(vl_ids) > 1:
+                comma_node = ASTNode(",")
+                for v in vl_ids:
+                    comma_node.add_child(v)
+                parent.add_child(comma_node)
+            elif len(vl_ids) == 1:
+                parent.add_child(vl_ids[0])
+            # (if len(vl_ids) == 0, do nothing)
+
             parent.add_child(rhs)
             return parent
 
-        # If neither '=' nor a Vb follows, it's a syntax error
-        raise SyntaxError("'=' or function form arguments",
-                          nxt_tok.content, nxt_tok.line)
+        # Otherwise: function_form without parentheses:  X Vb+ '=' E
+        var_nodes: List[ASTNode] = []
+        while self._peek().type == "<IDENTIFIER>" or self._peek().content == "(":
+            var_nodes.extend(self.Vb_list())  # returns a list of <ID:…>
+        self._match("=")
+        rhs = self.E()
 
-    def Vb(self) -> ASTNode:
+        parent = ASTNode("function_form")
+        parent.add_child(id_node)
+
+        # If multiple var_nodes, wrap in comma;
+        if len(var_nodes) > 1:
+            comma_node = ASTNode(",")
+            for v in var_nodes:
+                comma_node.add_child(v)
+            parent.add_child(comma_node)
+        elif len(var_nodes) == 1:
+            parent.add_child(var_nodes[0])
+
+        parent.add_child(rhs)
+        return parent
+
+    def Vb_list(self) -> List[ASTNode]:
         """
-        Vb → '<IDENTIFIER>'
-           | '(' Vl ')'     ⇒ tuple of identifiers
-           | '(' ')'        ⇒ '()'  (empty tuple)
+        Parses one Vb, but returns a list of identifier nodes.
+        Vb_list → '<IDENTIFIER>'           ⇒ [<ID:...>]
+                  | '(' Vl ')'             ⇒ [<ID:...>, <ID:...>, ...]
+                  | '(' ')'                ⇒ []
         """
-        # Case: identifier
+        result: List[ASTNode] = []
+
+        # Case: simple identifier
         if self._peek().type == "<IDENTIFIER>":
             tok = self._advance()
-            return ASTNode(f"<ID:{tok.content}>")
+            result.append(ASTNode(f"<ID:{tok.content}>"))
+            return result
 
-        # Case: '(' Vl ')'  or  '(' ')'
+        # Case: '(' Vl ')' or '(' ')'
         if self._peek().content == "(":
-            self._advance()                # consume '('
-            # Check for '()' (empty tuple)
+            self._advance()
+            # '()' → empty list
             if self._peek().content == ")":
-                self._advance()            # consume ')'
-                node = ASTNode("()")
-                return node
-
-            # Otherwise, parse Vl
-            vl_node = self.Vl()
+                self._advance()
+                return []
+            # Otherwise parse Vl_list_inner (a comma-separated list of identifiers)
+            vl_nodes = self.Vl_list_inner()
             self._match(")")
-            # Flatten Vl's children into a single node for binding purposes
-            node = ASTNode("tuple_vars")
-            for child in vl_node.children:
-                node.add_child(child)
-            return node
+            return vl_nodes
 
         raise SyntaxError(
             "identifier or '('", self._peek().content, self._peek().line)
 
-    def Vl(self) -> ASTNode:
+    def Vl_list_inner(self) -> List[ASTNode]:
         """
-        Vl → '<IDENTIFIER>' ( ',' '<IDENTIFIER>' )*
+        Parses Vl → '<IDENTIFIER>' (',' '<IDENTIFIER>')*
+        Returns a list of ASTNode("<ID:...>").
         """
         first_tok = self._match_type("<IDENTIFIER>")
         var_nodes: List[ASTNode] = [ASTNode(f"<ID:{first_tok.content}>")]
         while self._peek().content == ",":
-            self._advance()                        # consume ','
+            self._advance()
             next_tok = self._match_type("<IDENTIFIER>")
             var_nodes.append(ASTNode(f"<ID:{next_tok.content}>"))
-        node = ASTNode("tuple_vars")
-        for v in var_nodes:
-            node.add_child(v)
-        return node
+        return var_nodes
