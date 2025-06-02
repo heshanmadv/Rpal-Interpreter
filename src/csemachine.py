@@ -1,7 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Union
 from src.standardizer import standardize
-from src.rpal_ast import ASTNode
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -152,351 +150,400 @@ class Environment():
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# The main CSEMachine class
+# The main CSEMachine
 # ──────────────────────────────────────────────────────────────────────────────
-class CSEMachine:
-    def __init__(self):
-        self.control_structures = []
-        self.count = 0
-        self.control = []
-        # Stack for the CSE machine
-        self.stack = Stack("CSE")
-        self.environments = [Environment(0, None)]
-        self.current_environment = 0
-        self.builtInFunctions = [
-            "Order", "Print", "print", "Conc", "Stern", "Stem",
-            "Isinteger", "Istruthvalue", "Isstring", "Istuple",
-            "Isfunction", "ItoS"
-        ]
-        self.print_present = False
+control_structures = []
+count = 0
+control = []
+stack = Stack("CSE")          # Stack for the CSE machine
+environments = [Environment(0, None)]
+current_environment = 0
+builtInFunctions = ["Order", "Print", "print", "Conc", "Stern", "Stem",
+                    "Isinteger", "Istruthvalue", "Isstring", "Istuple", "Isfunction", "ItoS"]
+print_present = False
 
-    def generate_control_structure(self, root, i):
-        # Ensure there's a list at index i
-        while len(self.control_structures) <= i:
-            self.control_structures.append([])
 
-        if root.value == "lambda":
-            self.count += 1
-            left_child = root.children[0]
-            temp = Lambda(self.count)
-            if left_child.value == ",":
-                vars_concat = ",".join(
-                    child.value[4:-1] for child in left_child.children)
-                temp.bounded_variable = vars_concat
+def generate_control_structure(root, i):
+    global count
+
+    while (len(control_structures) <= i):
+        control_structures.append([])
+
+    # When lambda is encountered, we have to generate a new control structure.
+    if (root.value == "lambda"):
+        count += 1
+        left_child = root.children[0]
+        if (left_child.value == ","):
+            temp = Lambda(count)
+
+            x = ""
+            for child in left_child.children:
+                x += child.value[4:-1] + ","
+            x = x[:-1]
+
+            temp.bounded_variable = x
+            control_structures[i].append(temp)
+        else:
+            temp = Lambda(count)
+            temp.bounded_variable = left_child.value[4:-1]
+            control_structures[i].append(temp)
+
+        for child in root.children[1:]:
+            generate_control_structure(child, count)
+
+    elif (root.value == "->"):
+        count += 1
+        temp = Delta(count)
+        control_structures[i].append(temp)
+        generate_control_structure(root.children[1], count)
+        count += 1
+        temp = Delta(count)
+        control_structures[i].append(temp)
+        generate_control_structure(root.children[2], count)
+        control_structures[i].append("beta")
+        generate_control_structure(root.children[0], i)
+
+    elif (root.value == "tau"):
+        n = len(root.children)
+        temp = Tau(n)
+        control_structures[i].append(temp)
+        for child in root.children:
+            generate_control_structure(child, i)
+
+    else:
+        control_structures[i].append(root.value)
+        for child in root.children:
+            generate_control_structure(child, i)
+
+# This function is used for tokens that begin with '<' and end with '>'.
+
+
+def lookup(name):
+    name = name[1:-1]
+    info = name.split(":")
+
+    if (len(info) == 1):
+        value = info[0]
+    else:
+        data_type = info[0]
+        value = info[1]
+
+        if data_type == "INT":
+            return int(value)
+
+        # The rpal.exe program detects srings only when they begin with ' and end with '.
+        # Our code must emulate this behaviour.
+        elif data_type == "STR":
+            return value.strip("'")
+        elif data_type == "ID":
+            if (value in builtInFunctions):
+                return value
             else:
-                temp.bounded_variable = left_child.value[4:-1]
-            self.control_structures[i].append(temp)
-            for child in root.children[1:]:
-                self.generate_control_structure(child, self.count)
-
-        elif root.value == "->":
-            # Delta for then-branch
-            self.count += 1
-            temp_then = Delta(self.count)
-            self.control_structures[i].append(temp_then)
-            self.generate_control_structure(root.children[1], self.count)
-            # Delta for else-branch
-            self.count += 1
-            temp_else = Delta(self.count)
-            self.control_structures[i].append(temp_else)
-            self.generate_control_structure(root.children[2], self.count)
-            # Beta node
-            self.control_structures[i].append("beta")
-            # Condition expression
-            self.generate_control_structure(root.children[0], i)
-
-        elif root.value == "tau":
-            n = len(root.children)
-            temp = Tau(n)
-            self.control_structures[i].append(temp)
-            for child in root.children:
-                self.generate_control_structure(child, i)
-
-        else:
-            self.control_structures[i].append(root.value)
-            for child in root.children:
-                self.generate_control_structure(child, i)
-
-    def lookup(self, name):
-        # Handles tokens of form '<TYPE:value>' or '<value>'
-        inner = name[1:-1]
-        parts = inner.split(":")
-        if len(parts) == 1:
-            value = parts[0]
-        else:
-            data_type, value = parts[0], parts[1]
-            if data_type == "INT":
-                return int(value)
-            elif data_type == "STR":
-                return value.strip("'")
-            elif data_type == "ID":
-                if value in self.builtInFunctions:
+                try:
+                    value = environments[current_environment].variables[value]
+                except KeyError:
+                    print("Undeclared Identifier: " + value)
+                    exit(1)
+                else:
                     return value
-                else:
-                    try:
-                        return self.environments[self.current_environment].variables[value]
-                    except KeyError:
-                        print(f"Undeclared Identifier: {value}")
-                        exit(1)
 
-        if value == "Y*":
-            return "Y*"
-        elif value == "nil":
-            return ()
-        elif value == "true":
+    if value == "Y*":
+        return "Y*"
+    elif value == "nil":
+        return ()
+    elif value == "true":
+        return True
+    elif value == "false":
+        return False
+
+
+def built_in(function, argument):
+    global print_present
+
+    # The Order function returns the length of a tuple.
+    if (function == "Order"):
+        order = len(argument)
+        stack.push(order)
+
+    # The Print function prints the output to the command prompt.
+    elif (function == "Print" or function == "print"):
+        # We should print the output only when the 'Print' function is called in the program.
+        print_present = True
+
+        # If there are escape characters in the string, we need to format it properly.
+        if type(argument) == str:
+            if "\\n" in argument:
+                argument = argument.replace("\\n", "\n")
+            if "\\t" in argument:
+                argument = argument.replace("\\t", "\t")
+
+        stack.push(argument)
+
+    # The Conc function concatenates two strings.
+    elif (function == "Conc"):
+        stack_symbol = stack.pop()
+        control.pop()
+        temp = argument + stack_symbol
+        stack.push(temp)
+
+    # The Stern function returns the string without the first letter.
+    elif (function == "Stern"):
+        stack.push(argument[1:])
+
+    # The Stem function returns the first letter of the given string.
+    elif (function == "Stem"):
+        stack.push(argument[0])
+
+    # The Isinteger function checks if the given argument is an integer.
+    elif (function == "Isinteger"):
+        if (type(argument) == int):
+            stack.push(True)
+        else:
+            stack.push(False)
+
+    # The Istruthvalue function checks if the given argument is a boolean value.
+    elif (function == "Istruthvalue"):
+        if (type(argument) == bool):
+            stack.push(True)
+        else:
+            stack.push(False)
+
+    # The Isstring function checks if the given argument is a string.
+    elif (function == "Isstring"):
+        if (type(argument) == str):
+            stack.push(True)
+        else:
+            stack.push(False)
+
+    # The Istuple function checks if the given argument is a tuple.
+    elif (function == "Istuple"):
+        if (type(argument) == tuple):
+            stack.push(True)
+        else:
+            stack.push(False)
+
+    # The Isfunction function checks if the given argument is a built-in function.
+    elif (function == "Isfunction"):
+        if (argument in builtInFunctions):
             return True
-        elif value == "false":
-            return False
+        else:
+            False
 
-    def built_in(self, function, argument):
-        # The Order function returns the length of a tuple.
-        if function == "Order":
-            order = len(argument)
-            self.stack.push(order)
+    # The ItoS function converts integers to strings.
+    elif (function == "ItoS"):
+        if (type(argument) == int):
+            stack.push(str(argument))
+        else:
+            print("Error: ItoS function can only accept integers.")
+            exit()
 
-        # The Print function prints the output to the command prompt.
-        elif function in ("Print", "print"):
-            self.print_present = True
-            if isinstance(argument, str):
-                argument = argument.replace("\\n", "\n").replace("\\t", "\t")
-            self.stack.push(argument)
 
-        # The Conc function concatenates two strings.
-        elif function == "Conc":
-            second = self.stack.pop()
-            self.control.pop()
-            concatenated = argument + second
-            self.stack.push(concatenated)
+def apply_rules():
+    op = ["+", "-", "*", "/", "**", "gr", "ge",
+          "ls", "le", "eq", "ne", "or", "&", "aug"]
+    uop = ["neg", "not"]
 
-        # The Stern function returns the string without the first letter.
-        elif function == "Stern":
-            self.stack.push(argument[1:])
+    global control
+    global current_environment
 
-        # The Stem function returns the first letter of the given string.
-        elif function == "Stem":
-            self.stack.push(argument[0])
+    while (len(control) > 0):
 
-        # The Isinteger function checks if the given argument is an integer.
-        elif function == "Isinteger":
-            self.stack.push(isinstance(argument, int))
+        symbol = control.pop()
 
-        # The Istruthvalue function checks if the given argument is a boolean.
-        elif function == "Istruthvalue":
-            self.stack.push(isinstance(argument, bool))
+        # Rule 1
+        if type(symbol) == str and (symbol[0] == "<" and symbol[-1] == ">"):
+            stack.push(lookup(symbol))
 
-        # The Isstring function checks if the given argument is a string.
-        elif function == "Isstring":
-            self.stack.push(isinstance(argument, str))
+        # Rule 2
+        elif type(symbol) == Lambda:
+            temp = Lambda(symbol.number)
+            temp.bounded_variable = symbol.bounded_variable
+            temp.environment = current_environment
+            stack.push(temp)
 
-        # The Istuple function checks if the given argument is a tuple.
-        elif function == "Istuple":
-            self.stack.push(isinstance(argument, tuple))
+        # Rule 4
+        elif (symbol == "gamma"):
+            stack_symbol_1 = stack.pop()
+            stack_symbol_2 = stack.pop()
 
-        # The Isfunction function checks if the given argument is a built-in function.
-        elif function == "Isfunction":
-            self.stack.push(argument in self.builtInFunctions)
+            if (type(stack_symbol_1) == Lambda):
+                current_environment = len(environments)
 
-        # The ItoS function converts integers to strings.
-        elif function == "ItoS":
-            if isinstance(argument, int):
-                self.stack.push(str(argument))
-            else:
-                print("Error: ItoS function can only accept integers.")
-                exit(1)
+                lambda_number = stack_symbol_1.number
+                bounded_variable = stack_symbol_1.bounded_variable
+                parent_environment_number = stack_symbol_1.environment
 
-    def apply_rules(self):
-        op = ["+", "-", "*", "/", "**", "gr", "ge",
-              "ls", "le", "eq", "ne", "or", "&", "aug"]
-        uop = ["neg", "not"]
+                parent = environments[parent_environment_number]
+                child = Environment(current_environment, parent)
+                parent.add_child(child)
+                environments.append(child)
 
-        while self.control:
-            symbol = self.control.pop()
+                # Rule 11
+                variable_list = bounded_variable.split(",")
 
-            # Rule 1: literal or identifier
-            if isinstance(symbol, str) and symbol.startswith("<") and symbol.endswith(">"):
-                self.stack.push(self.lookup(symbol))
-
-            # Rule 2: lambda
-            elif isinstance(symbol, Lambda):
-                temp = Lambda(symbol.number)
-                temp.bounded_variable = symbol.bounded_variable
-                temp.environment = self.current_environment
-                self.stack.push(temp)
-
-            # Rule 4: gamma (application)
-            elif symbol == "gamma":
-                arg = self.stack.pop()
-                fun = self.stack.pop()
-
-                # Lambda application
-                if isinstance(arg, Lambda):
-                    self.current_environment = len(self.environments)
-                    lambda_number = arg.number
-                    bounded_variable = arg.bounded_variable
-                    parent_env_number = arg.environment
-
-                    parent_env = self.environments[parent_env_number]
-                    child_env = Environment(
-                        self.current_environment, parent_env)
-                    parent_env.add_child(child_env)
-                    self.environments.append(child_env)
-
-                    vars_list = bounded_variable.split(",")
-                    if len(vars_list) > 1:
-                        for idx, var in enumerate(vars_list):
-                            child_env.add_variable(var, fun[idx])
-                    else:
-                        child_env.add_variable(bounded_variable, fun)
-
-                    self.stack.push(child_env.name)
-                    self.control.append(child_env.name)
-                    self.control.extend(self.control_structures[lambda_number])
-
-                # Tuple indexing
-                elif isinstance(arg, tuple):
-                    self.stack.push(arg[fun - 1])
-
-                # Eta expansion
-                elif arg == "Y*":
-                    temp_eta = Eta(fun.number)
-                    temp_eta.bounded_variable = fun.bounded_variable
-                    temp_eta.environment = fun.environment
-                    self.stack.push(temp_eta)
-
-                elif isinstance(arg, Eta):
-                    temp_lambda = Lambda(arg.number)
-                    temp_lambda.bounded_variable = arg.bounded_variable
-                    temp_lambda.environment = arg.environment
-                    self.control.append("gamma")
-                    self.control.append("gamma")
-                    self.stack.push(fun)
-                    self.stack.push(arg)
-                    self.stack.push(temp_lambda)
-
-                # Built-in functions
-                elif arg in self.builtInFunctions:
-                    self.built_in(arg, fun)
-
-            # Rule 5: environment marker
-            elif isinstance(symbol, str) and symbol.startswith("e_"):
-                value = self.stack.pop()
-                self.stack.pop()
-                if self.current_environment != 0:
-                    for element in reversed(self.stack):
-                        if isinstance(element, str) and element.startswith("e_"):
-                            self.current_environment = int(element[2:])
-                            break
-                self.stack.push(value)
-
-            # Rule 6: binary operators
-            elif symbol in op:
-                rhs = self.stack.pop()
-                lhs = self.stack.pop()
-                if symbol == "+":
-                    self.stack.push(lhs + rhs)
-                elif symbol == "-":
-                    self.stack.push(lhs - rhs)
-                elif symbol == "*":
-                    self.stack.push(lhs * rhs)
-                elif symbol == "/":
-                    self.stack.push(lhs // rhs)
-                elif symbol == "**":
-                    self.stack.push(lhs ** rhs)
-                elif symbol == "gr":
-                    self.stack.push(lhs > rhs)
-                elif symbol == "ge":
-                    self.stack.push(lhs >= rhs)
-                elif symbol == "ls":
-                    self.stack.push(lhs < rhs)
-                elif symbol == "le":
-                    self.stack.push(lhs <= rhs)
-                elif symbol == "eq":
-                    self.stack.push(lhs == rhs)
-                elif symbol == "ne":
-                    self.stack.push(lhs != rhs)
-                elif symbol == "or":
-                    self.stack.push(lhs or rhs)
-                elif symbol == "&":
-                    self.stack.push(lhs and rhs)
-                elif symbol == "aug":
-                    if isinstance(rhs, tuple):
-                        self.stack.push(lhs + rhs)
-                    else:
-                        self.stack.push(lhs + (rhs,))
-
-            # Rule 7: unary operators
-            elif symbol in uop:
-                operand = self.stack.pop()
-                if symbol == "not":
-                    self.stack.push(not operand)
-                elif symbol == "neg":
-                    self.stack.push(-operand)
-
-            # Rule 8: beta (conditional)
-            elif symbol == "beta":
-                B = self.stack.pop()
-                else_part = self.control.pop()
-                then_part = self.control.pop()
-                if B:
-                    self.control.extend(
-                        self.control_structures[then_part.number])
+                if (len(variable_list) > 1):
+                    for i in range(len(variable_list)):
+                        child.add_variable(variable_list[i], stack_symbol_2[i])
                 else:
-                    self.control.extend(
-                        self.control_structures[else_part.number])
+                    child.add_variable(bounded_variable, stack_symbol_2)
 
-            # Rule 9: tau (tuple construction)
-            elif isinstance(symbol, Tau):
-                n = symbol.number
-                items = [self.stack.pop() for _ in range(n)]
-                self.stack.push(tuple(items))
+                stack.push(child.name)
+                control.append(child.name)
+                control += control_structures[lambda_number]
 
-            # Rule 10 & 11 & 12 & 13: handled within Rule 4
+            # Rule 10
+            elif (type(stack_symbol_1) == tuple):
+                stack.push(stack_symbol_1[stack_symbol_2 - 1])
 
-            # Rule: Y* propagates as is
-            elif symbol == "Y*":
-                self.stack.push(symbol)
+            # Rule 12
+            elif (stack_symbol_1 == "Y*"):
+                temp = Eta(stack_symbol_2.number)
+                temp.bounded_variable = stack_symbol_2.bounded_variable
+                temp.environment = stack_symbol_2.environment
+                stack.push(temp)
 
-        # Post-processing: convert lambda to closure string
-        if isinstance(self.stack[0], Lambda):
-            lam = self.stack[0]
-            self.stack[0] = f"[lambda closure: {lam.bounded_variable}: {lam.number}]"
+            # Rule 13
+            elif (type(stack_symbol_1) == Eta):
+                temp = Lambda(stack_symbol_1.number)
+                temp.bounded_variable = stack_symbol_1.bounded_variable
+                temp.environment = stack_symbol_1.environment
 
-        # Post-processing: tuple and boolean formatting
-        top = self.stack[0]
-        if isinstance(top, tuple):
-            converted = list(top)
-            for idx, elem in enumerate(converted):
-                if isinstance(elem, bool):
-                    converted[idx] = str(elem).lower()
-            if len(converted) == 1:
-                self.stack[0] = f"({converted[0]})"
-            else:
-                if any(isinstance(el, str) for el in converted):
-                    joined = ", ".join(str(el) for el in converted)
-                    self.stack[0] = f"({joined})"
+                control.append("gamma")
+                control.append("gamma")
+                stack.push(stack_symbol_2)
+                stack.push(stack_symbol_1)
+                stack.push(temp)
+
+            # Built-in functions
+            elif stack_symbol_1 in builtInFunctions:
+                built_in(stack_symbol_1, stack_symbol_2)
+
+        # Rule 5
+        elif type(symbol) == str and (symbol[0:2] == "e_"):
+            stack_symbol = stack.pop()
+            stack.pop()
+
+            if (current_environment != 0):
+                for element in reversed(stack):
+                    if (type(element) == str and element[0:2] == "e_"):
+                        current_environment = int(element[2:])
+                        break
+            stack.push(stack_symbol)
+
+        # Rule 6
+        elif (symbol in op):
+            rand_1 = stack.pop()
+            rand_2 = stack.pop()
+            if (symbol == "+"):
+                stack.push(rand_1 + rand_2)
+            elif (symbol == "-"):
+                stack.push(rand_1 - rand_2)
+            elif (symbol == "*"):
+                stack.push(rand_1 * rand_2)
+            elif (symbol == "/"):
+                stack.push(rand_1 // rand_2)
+            elif (symbol == "**"):
+                stack.push(rand_1 ** rand_2)
+            elif (symbol == "gr"):
+                stack.push(rand_1 > rand_2)
+            elif (symbol == "ge"):
+                stack.push(rand_1 >= rand_2)
+            elif (symbol == "ls"):
+                stack.push(rand_1 < rand_2)
+            elif (symbol == "le"):
+                stack.push(rand_1 <= rand_2)
+            elif (symbol == "eq"):
+                stack.push(rand_1 == rand_2)
+            elif (symbol == "ne"):
+                stack.push(rand_1 != rand_2)
+            elif (symbol == "or"):
+                stack.push(rand_1 or rand_2)
+            elif (symbol == "&"):
+                stack.push(rand_1 and rand_2)
+            elif (symbol == "aug"):
+                if (type(rand_2) == tuple):
+                    stack.push(rand_1 + rand_2)
                 else:
-                    self.stack[0] = tuple(converted)
+                    stack.push(rand_1 + (rand_2,))
 
-        if self.stack[0] is True or self.stack[0] is False:
-            self.stack[0] = str(self.stack[0]).lower()
+        # Rule 7
+        elif (symbol in uop):
+            rand = stack.pop()
+            if (symbol == "not"):
+                stack.push(not rand)
+            elif (symbol == "neg"):
+                stack.push(-rand)
 
-    def interpret(self, file_name):
-        st = standardize(file_name)
-        print(f"Standardized AST: {st}")
-        self.generate_control_structure(st, 0)
+        # Rule 8
+        elif (symbol == "beta"):
+            B = stack.pop()
+            else_part = control.pop()
+            then_part = control.pop()
+            if (B):
+                control += control_structures[then_part.number]
+            else:
+                control += control_structures[else_part.number]
 
-        # Bootstrap the control list
-        root_env_name = self.environments[0].name
-        self.control.append(root_env_name)
-        self.control.extend(self.control_structures[0])
-        self.stack.push(root_env_name)
+        # Rule 9
+        elif type(symbol) == Tau:
+            n = symbol.number
+            tau_list = []
+            for i in range(n):
+                tau_list.append(stack.pop())
+            tau_tuple = tuple(tau_list)
+            stack.push(tau_tuple)
 
-        self.apply_rules()
+        elif (symbol == "Y*"):
+            stack.push(symbol)
 
-        if self.print_present:
-            print(self.stack[0])
+    # Lambda expression becomes a lambda closure when its environment is determined.
+    if type(stack[0]) == Lambda:
+        stack[0] = "[lambda closure: " + \
+            str(stack[0].bounded_variable) + ": " + str(stack[0].number) + "]"
+
+    if type(stack[0]) == tuple:
+        # The rpal.exe program prints the boolean values in lowercase. Our code must emulate this behaviour.
+        for i in range(len(stack[0])):
+            if type(stack[0][i]) == bool:
+                stack[0] = list(stack[0])
+                stack[0][i] = str(stack[0][i]).lower()
+                stack[0] = tuple(stack[0])
+
+        # The rpal.exe program does not print the comma when there is only one element in the tuple.
+        # Our code must emulate this behaviour.
+        if len(stack[0]) == 1:
+            stack[0] = "(" + str(stack[0][0]) + ")"
+
+        # The rpal.exe program does not print inverted commas when an element in the tuple is a string.
+        # Our code must emulate this behaviour too.
+        else:
+            if any(type(element) == str for element in stack[0]):
+                temp = "("
+                for element in stack[0]:
+                    temp += str(element) + ", "
+                temp = temp[:-2] + ")"
+                stack[0] = temp
+
+    # The rpal.exe program prints the boolean values in lowercase. Our code must emulate this behaviour.
+    if stack[0] == True or stack[0] == False:
+        stack[0] = str(stack[0]).lower()
+
+# The following function is called from the myrpal.py file.
 
 
 def get_result(file_name):
-    csemachine = CSEMachine()
-    csemachine.interpret(file_name)
+    global control
+
+    st = standardize(file_name)
+
+    generate_control_structure(st, 0)
+
+    control.append(environments[0].name)
+    control += control_structures[0]
+
+    stack.push(environments[0].name)
+
+    apply_rules()
+
+    if print_present:
+        print(stack[0])
