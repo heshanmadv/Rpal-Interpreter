@@ -18,8 +18,7 @@ def _capture_ast(code: str) -> str:
 
 
 def test__8_t2():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:Sum_first_n>
 ..<ID:N>
@@ -52,8 +51,7 @@ let
 ..<ID:Print>
 ..gamma
 ...<ID:Sum_first_n>
-...<INT:5>
-"""
+...<INT:5>"""
     with open(r"Tests\8-t2") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -61,8 +59,7 @@ let
 
 
 def test_Innerprod():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:Innerproduct>
 ..,
@@ -160,8 +157,7 @@ let
 .....tau
 ......<INT:2>
 ......<INT:3>
-......<INT:4>
-"""
+......<INT:4>"""
     with open(r"Tests\Innerprod") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -169,8 +165,7 @@ let
 
 
 def test_Innerprod2():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:Innerproduct>
 ..<ID:S1>
@@ -268,8 +263,7 @@ let
 ....tau
 .....<INT:2>
 .....<INT:3>
-.....<INT:4>
-"""
+.....<INT:4>"""
     with open(r"Tests\Innerprod2") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -277,8 +271,7 @@ let
 
 
 def test_Treepicture():
-    expected = """
-let
+    expected = """let
 .rec
 ..function_form
 ...<ID:TreePicture>
@@ -377,8 +370,7 @@ let
 ......<nil>
 .....aug
 ......<nil>
-......<INT:10>
-"""
+......<INT:10>"""
     with open(r"Tests\Treepicture") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -386,8 +378,7 @@ let
 
 
 def test_add():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:Sum>
 ..<ID:A>
@@ -430,8 +421,7 @@ let
 ....<INT:2>
 ....<INT:3>
 ....<INT:4>
-....<INT:5>
-"""
+....<INT:5>"""
     with open(r"Tests\add") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -439,8 +429,7 @@ let
 
 
 def test_clean():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:Is_Element>
 ..<ID:Number>
@@ -539,8 +528,7 @@ let
 ......<INT:2>
 ......<INT:4>
 ......<INT:5>
-......<INT:4>
-"""
+......<INT:4>"""
     with open(r"Tests\clean") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -548,8 +536,7 @@ let
 
 
 def test_conc1():
-    expected = """
-let
+    expected = """let
 .=
 ..<ID:Message>
 ..<STR:'HELLO'>
@@ -562,8 +549,7 @@ let
 .....<ID:Message>
 ....<STR:'!'>
 ...<STR:'dflsdfiuh'>
-...<STR:'dkgh'>
-"""
+...<STR:'dkgh'>"""
     with open(r"Tests\conc1") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -571,8 +557,7 @@ let
 
 
 def test_conc11():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:Conc>
 ..<ID:x>
@@ -609,8 +594,7 @@ let
 .....<ID:T>
 ....gamma
 .....<ID:Mark>
-.....<ID:T>
-"""
+.....<ID:T>"""
     with open(r"Tests\conc11") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -618,8 +602,7 @@ let
 
 
 def test_conc3():
-    expected = """
-let
+    expected = """let
 .and
 ..=
 ...<ID:S>
@@ -633,8 +616,7 @@ let
 ...gamma
 ....<ID:Conc>
 ....<ID:S>
-...<ID:T>
-"""
+...<ID:T>"""
     with open(r"Tests\conc3") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -642,8 +624,7 @@ let
 
 
 def test_defns_1():
-    expected = """
-gamma
+    expected = """gamma
 .<ID:Print>
 .let
 ..function_form
@@ -667,8 +648,7 @@ gamma
 ........<ID:x>
 ......<ID:h>
 ....<ID:g>
-..<ID:f>
-"""
+..<ID:f>"""
     with open(r"Tests\defns.1") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -676,8 +656,7 @@ gamma
 
 
 def test_defns_2():
-    expected = """
-gamma
+    expected = """gamma
 .<ID:Print>
 .where
 ..+
@@ -697,8 +676,7 @@ gamma
 .......<INT:4>
 ......=
 .......<ID:z>
-.......<INT:7>
-"""
+.......<INT:7>"""
     with open(r"Tests\defns.2") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -706,8 +684,7 @@ gamma
 
 
 def test_defns_3():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:f>
 ..,
@@ -724,8 +701,7 @@ let
 ..tau
 ...<INT:1>
 ...<INT:2>
-...<INT:3>
-"""
+...<INT:3>"""
     with open(r"Tests\defns.3") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -733,8 +709,7 @@ let
 
 
 def test_dist():
-    expected = """
-let
+    expected = """let
 .function_form
 ..<ID:add>
 ..<ID:n>
@@ -769,8 +744,7 @@ let
 ......<INT:2>
 .....<INT:3>
 ....<INT:4>
-...<INT:0>
-"""
+...<INT:0>"""
     with open(r"Tests\dist") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -778,8 +752,7 @@ let
 
 
 def test_div():
-    expected = """
-gamma
+    expected = """gamma
 .lambda
 ..<ID:a>
 ..gamma
@@ -787,8 +760,7 @@ gamma
 .../
 ....<ID:a>
 ....<INT:3>
-.<INT:6>
-"""
+.<INT:6>"""
     with open(r"Tests\div") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -796,8 +768,7 @@ gamma
 
 
 def test_envlist():
-    expected = """
-let
+    expected = """let
 .=
 ..<ID:a>
 ..<INT:1>
@@ -805,8 +776,7 @@ let
 ..=
 ...<ID:b>
 ...<ID:a>
-..<ID:b>
-"""
+..<ID:b>"""
     with open(r"Tests\envlist") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -814,8 +784,7 @@ let
 
 
 def test_fn1():
-    expected = """
-gamma
+    expected = """gamma
 .<ID:Print>
 .gamma
 ..lambda
@@ -832,8 +801,7 @@ gamma
 ....<INT:1>
 ....+
 .....<ID:x>
-.....<INT:2>
-"""
+.....<INT:2>"""
     with open(r"Tests\fn1") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -841,8 +809,7 @@ gamma
 
 
 def test_fn2():
-    expected = """
-gamma
+    expected = """gamma
 .<ID:Print>
 .gamma
 ..lambda
@@ -854,8 +821,7 @@ gamma
 ...<ID:x>
 ...gamma
 ....<ID:Stern>
-....<ID:x>
-"""
+....<ID:x>"""
     with open(r"Tests\fn2") as f:
         code = f.read()
     actual = _capture_ast(code)
@@ -863,8 +829,7 @@ gamma
 
 
 def test_fn3():
-    expected = """
-gamma
+    expected = """gamma
 .<ID:Print>
 .gamma
 ..lambda
@@ -884,8 +849,7 @@ gamma
 .....+
 ......<ID:z>
 ......<INT:4>
-....<INT:7>
-"""
+....<INT:7>"""
     with open(r"Tests\fn3") as f:
         code = f.read()
     actual = _capture_ast(code)

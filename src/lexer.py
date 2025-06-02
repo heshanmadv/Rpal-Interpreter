@@ -1,5 +1,3 @@
-# src/lexer.py
-
 from __future__ import annotations
 from typing import List, Tuple
 from src.rpal_token import Token, TokenType
@@ -18,7 +16,7 @@ class Lexer:
     ]
 
     SIMPLE_OPERATORS: List[str] = [
-        "+", "-", "*", "/", "**", "=", "->", "@", ":", ";", ",",
+        "+", "-", "*", "/", "**", "=", "->", "@", "&", ":", ";", ",", ".",
         "(", ")", "[", "]"
     ]
 
@@ -132,10 +130,10 @@ class Lexer:
             self._advance()
             self._add_token(two_char, TokenType.OPERATOR)
             return
-        if ch in "+-*/=@|:,;()[]":
+        if ch in "+-*/=@&|:,.;()[]":
             self._advance()
             self._add_token(
-                ch, TokenType.OPERATOR if ch not in "()[],:;@" else ch)
+                ch, TokenType.OPERATOR if ch not in "()[],.:;@&" else ch)
             return
         # Potential multi‐letter operator like "gr", "ge", etc.
         if self._peek().isalpha():

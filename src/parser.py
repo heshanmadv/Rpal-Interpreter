@@ -450,9 +450,8 @@ class Parser:
         id_tok = self._match_type("<IDENTIFIER>")
         id_node = ASTNode(f"<ID:{id_tok.content}>")
 
-        # Now decide which branch
+        # If next is '=', it's a simple binding X = E
         if self._peek().content == "=":
-            # Simple let‐binding: X = E
             self._match("=")
             rhs = self.E()
             parent = ASTNode("=")
@@ -460,29 +459,22 @@ class Parser:
             parent.add_child(rhs)
             return parent
 
-        # Otherwise, must be function_form: <IDENTIFIER> Vb+ '=' E
+        # Otherwise: function_form <IDENTIFIER> Vb+ '=' E
         var_nodes: List[ASTNode] = []
         while self._peek().type == "<IDENTIFIER>" or self._peek().content == "(":
-            # Each Vb_list returns a list of nodes (possibly one ','-node or one ID or empty)
             var_nodes.extend(self.Vb_list())
+
         self._match("=")
         rhs = self.E()
 
         parent = ASTNode("function_form")
         parent.add_child(id_node)
 
-        # Attach parameters: if exactly one node which is a ',' or ID, or multiple?
-        # But in original logic, Vb_list returns either [<ID:...>] or one ','-node wrapping multiple IDs,
-        # or [] if '()' was used. So var_nodes list contains exactly one element when parameters existed.
-        if len(var_nodes) == 1:
+        if len(var_nodes) == 1 and var_nodes[0].value == ",":
             parent.add_child(var_nodes[0])
-        elif len(var_nodes) > 1:
-            # This case shouldn’t happen in well‐formed input, but to be safe:
-            comma_node = ASTNode(",")
+        else:
             for v in var_nodes:
-                comma_node.add_child(v)
-            parent.add_child(comma_node)
-        # else: zero parameters (no node to add)
+                parent.add_child(v)
 
         parent.add_child(rhs)
         return parent
