@@ -488,14 +488,9 @@ class Parser:
         parent = ASTNode("function_form")
         parent.add_child(id_node)
 
-        # If multiple var_nodes, wrap in comma;
-        if len(var_nodes) > 1:
-            comma_node = ASTNode(",")
-            for v in var_nodes:
-                comma_node.add_child(v)
-            parent.add_child(comma_node)
-        elif len(var_nodes) == 1:
-            parent.add_child(var_nodes[0])
+        # add all variable nodes as children
+        for var_node in var_nodes:
+            parent.add_child(var_node)
 
         parent.add_child(rhs)
         return parent
