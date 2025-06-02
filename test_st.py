@@ -1,16 +1,18 @@
 import io
 import sys
 from src.parser import Parser
+from src.standardizer import make_standardized_tree
 from src.rpal_ast import preorder_traversal
 
 
-def _capture_ast(code: str) -> str:
+def _capture_st_(code: str) -> str:
     buf = io.StringIO()
     old_stdout = sys.stdout
     sys.stdout = buf
     try:
-        root = Parser(code).parse()
-        preorder_traversal(root)
+        ast_root = Parser(code).parse()
+        st_root = make_standardized_tree(ast_root)
+        preorder_traversal(st_root)
     finally:
         sys.stdout = old_stdout
     return buf.getvalue().rstrip("\n")
@@ -60,7 +62,7 @@ def test__8_t2():
 
     with open(r"Tests\8-t2") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on 8-t2"
 
 
@@ -172,7 +174,7 @@ def test_Innerprod():
 
     with open(r"Tests\Innerprod") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on Innerprod"
 
 
@@ -287,7 +289,7 @@ def test_Innerprod2():
 
     with open(r"Tests\Innerprod2") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on Innerprod2"
 
 
@@ -408,7 +410,7 @@ def test_Treepicture():
 
     with open(r"Tests\Treepicture") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on Treepicture"
 
 
@@ -465,7 +467,7 @@ def test_add():
 
     with open(r"Tests\add") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on add"
 
 
@@ -587,7 +589,7 @@ def test_clean():
 
     with open(r"Tests\clean") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on clean"
 
 
@@ -609,7 +611,7 @@ def test_conc1():
 
     with open(r"Tests\conc1") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on conc1"
 
 
@@ -657,7 +659,7 @@ def test_conc11():
 
     with open(r"Tests\conc11") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on conc11"
 
 
@@ -680,7 +682,7 @@ def test_conc3():
 
     with open(r"Tests\conc3") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on conc3"
 
 
@@ -719,7 +721,7 @@ def test_defns_1():
 
     with open(r"Tests\defns.1") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on defns.1"
 
 
@@ -748,7 +750,7 @@ def test_defns_2():
 
     with open(r"Tests\defns.2") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on defns.2"
 
 
@@ -775,7 +777,7 @@ def test_defns_3():
 
     with open(r"Tests\defns.3") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on defns.3"
 
 
@@ -825,7 +827,7 @@ def test_dist():
 
     with open(r"Tests\dist") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on dist"
 
 
@@ -842,7 +844,7 @@ def test_div():
 
     with open(r"Tests\div") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on div"
 
 
@@ -859,7 +861,7 @@ def test_envlist():
 
     with open(r"Tests\envlist") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on envlist"
 
 
@@ -885,7 +887,7 @@ def test_fn1():
 
     with open(r"Tests\fn1") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on fn1"
 
 
@@ -906,7 +908,7 @@ def test_fn2():
 
     with open(r"Tests\fn2") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on fn2"
 
 
@@ -935,5 +937,5 @@ def test_fn3():
 
     with open(r"Tests\fn3") as f:
         code = f.read()
-    actual = _capture_ast(code)
+    actual = _capture_st_(code)
     assert actual == expected, "AST mismatch on fn3"
