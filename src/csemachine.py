@@ -110,43 +110,30 @@ class Eta:
 # ──────────────────────────────────────────────────────────────────────────────
 # Environment class for the CSE machine
 # ──────────────────────────────────────────────────────────────────────────────
-class Environment:
+class Environment():
     """
-    Represents an environment frame in the CSE machine.
-    Each environment has:
-      - name (e.g., "e_0", "e_1", ...)
-      - a dictionary of variable bindings
-      - a reference to its parent environment
-      - a list of child environments (used when exiting)
+    Represents an environment in the CSE machine, which holds variables and child environments.
+    Fields:
+      - name: unique identifier for the environment (e.g., "e_0", "e_1", ...)
+      - variables: dictionary of variable names and their values
+      - children: list of child environments
+      - parent: reference to the parent environment
     """
 
-    def __init__(self, name: str, parent: Union[Environment, None]) -> None:
-        self.name: str = name
-        self.bindings: Dict[str, Any] = {}
-        self.parent: Union[Environment, None] = parent
-        self.children: List[Environment] = []
+    def __init__(self, number, parent):
+        self.name = "e_" + str(number)
+        self.variables = {}
+        self.children = []
+        self.parent = parent
 
-    def lookup(self, var: str) -> Any:
-        """
-        Look up a variable in this environment or its ancestors.
-        """
-        if var in self.bindings:
-            return self.bindings[var]
-        if self.parent:
-            return self.parent.lookup(var)
-        raise KeyError(f"Unbound identifier '{var}'")
-
-    def extend(self, var: str, value: Any) -> None:
-        """
-        Bind a new variable to this environment. Raises if already bound.
-        """
-        if var in self.bindings:
-            raise AssertionError(
-                f"Duplicate binding for '{var}' in environment {self.name}")
-        self.bindings[var] = value
-
-    def add_child(self, child: Environment) -> None:
+    # This function adds a child to the current environment.
+    def add_child(self, child):
         self.children.append(child)
+        child.variables.update(self.variables)
+
+    # This function adds a variable to the current environment.
+    def add_variable(self, key, value):
+        self.variables[key] = value
 
 
 # ──────────────────────────────────────────────────────────────────────────────
