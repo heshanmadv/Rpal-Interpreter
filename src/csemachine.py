@@ -12,31 +12,46 @@ class Stack:
     A simple stack wrapper around a Python list, used as the operand stack in the CSE machine.
     """
 
-    def __init__(self, name: str) -> None:
-        self.name: str = name
-        self._stack: List[Any] = []
+    def __init__(self, type):
+        self.type = type
+        self.stack = []
 
-    def push(self, item: Any) -> None:
-        self._stack.append(item)
+     # Adds an element to the top of the stack
 
-    def pop(self) -> Any:
-        if not self._stack:
-            raise IndexError(f"Pop from empty stack '{self.name}'")
-        return self._stack.pop()
+    def push(self, item):
+        self.stack.append(item)
 
-    def peek(self) -> Any:
-        if not self._stack:
-            raise IndexError(f"Peek from empty stack '{self.name}'")
-        return self._stack[-1]
+    # Removes and returns the top element of the stack if it’s not empty
+    def pop(self):
+        if self.is_empty():
+            message = (
+                "Error: Attempted to pop from an empty CSE machine stack."
+                if self.type == "CSE"
+                else "Error: Attempted to pop from an empty AST construction stack."
+            )
+            print(message)
+            exit(1)
+        return self.stack.pop()
 
-    def is_empty(self) -> bool:
-        return len(self._stack) == 0
+    # Provides a string representation of the stack for easier inspection during debugging
+    def __repr__(self):
+        return str(self.stack)
 
-    def __len__(self) -> int:
-        return len(self._stack)
+    # Checks whether the stack currently contains any elements
+    def is_empty(self):
+        return len(self.stack) == 0
 
-    def __repr__(self) -> str:
-        return f"{self.name}Stack({self._stack})"
+    # Allow index-based access to elements
+    def __getitem__(self, index):
+        return self.stack[index]
+
+    # Allow assignment to elements at specific indices
+    def __setitem__(self, index, value):
+        self.stack[index] = value
+
+    # Support reversed iteration through the stack
+    def __reversed__(self):
+        return reversed(self.stack)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -467,6 +482,7 @@ class CSEMachine:
 
     def interpret(self, file_name):
         st = standardize(file_name)
+        print(f"Standardized AST: {st}")
         self.generate_control_structure(st, 0)
 
         # Bootstrap the control list
