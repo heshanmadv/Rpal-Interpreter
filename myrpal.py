@@ -1,61 +1,83 @@
-# Description: This file is the main file that will be run to execute the program. It will take in the command line arguments and execute the program accordingly.
-# You cannot run this file in the IDE. You must run it in the terminal.
-# The command should be in the following format:
-# python ./myrpal.py [-l] [-ast] [-st] filename
-
-from src.rpal_parser import parse
-from src.node import preorder_traversal
-from src.standardizer import *
-from src.csemachine import *
 import sys
+from typing import List
+from src.parser import Parser
+from src.rpal_ast import preorder_traversal, ASTNode
+from src.standardizer import standardize, make_standardized_tree
+from src.csemachine import get_result
+from src.lexer import Lexer
+from src.errors import RPALException
+
+USAGE = (
+    "Usage:\n"
+    "  python main.py [-l] [-ast] [-st] filename\n\n"
+    "  -l       : List the source file verbatim\n"
+    "  -ast     : Print the Abstract Syntax Tree (AST)\n"
+    "  -st      : Print the Standardized Tree (ST)\n"
+    "  filename : Path to the RPAL source file"
+)
+
+
+def read_file(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        print(f"Error: File not found: {path}")
+        sys.exit(1)
+
+
+def main(argv: List[str]) -> None:
+    if len(argv) < 2:
+        print(USAGE)
+        sys.exit(1)
+
+    # Exactly one filename at the end
+    switches = argv[1:-1]
+    filename = argv[-1]
+    source_code = read_file(filename)
+
+    try:
+        if not switches:
+            # No flags → just run it
+            result = get_result(source_code)
+            if result is not None:
+                print(result)
+            return
+
+        if any(flag not in ("-l", "-ast", "-st") for flag in switches):
+            print(USAGE)
+            sys.exit(1)
+
+        # 1. -l : list source
+        if "-l" in switches:
+            print(source_code)
+            print()
+
+        # 2. -ast : print AST
+        if "-ast" in switches:
+            parser = Parser(source_code)
+            ast_root: ASTNode = parser.parse()
+            preorder_traversal(ast_root)
+            print()
+
+            # If -st is also present, immediately print ST on the same AST
+            if "-st" in switches:
+                st_root = make_standardized_tree(ast_root)
+                preorder_traversal(st_root)
+                print()
+                return
+
+        # 3. -st (alone)
+        if "-st" in switches and "-ast" not in switches:
+            st_root = standardize(source_code)
+            preorder_traversal(st_root)
+            print()
+            return
+
+    except RPALException as e:
+        print(e)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
-    arguments = sys.argv
-    
-    if len(arguments) < 2:
-        print("Wrong command. Make sure the command is in the following format. \n python ./myrpal.py [-l] [-ast] [-st] filename")
-        sys.exit(1)
-        
-    else:
-        if len(arguments) == 2:
-            file_name = arguments[1]
-            get_result(file_name)
-            
-        else:
-            switches = arguments[1 : -1]
-            file_name = arguments[-1]
-            
-            if "-l" in switches or "-ast" in switches or "-st" in switches:
-
-                # If '-l' is in the switches, we must print the file as it is.
-                if "-l" in switches:
-                    with open(file_name, "r") as file:
-                        print(file.read())
-                        
-                    print()
-                    
-                # If '-ast' is in the switches, we must print the abstract syntax tree.
-                if "-ast" in switches:
-                    ast = parse(file_name)
-                    preorder_traversal(ast)
-                    
-                    print()
-                    
-                    if "-st" in switches:
-                        st = make_standardized_tree(ast)
-                        preorder_traversal(st)
-                        
-                        print() 
-                        exit()
-                
-                # If '-st' is in the switches, we must print the standardized tree.    
-                elif "-st" in switches:
-                    st = standardize(file_name)  
-                    preorder_traversal(st)
-                    
-                    print()
-                    exit()
-            
-            else:
-                print("Wrong command. Make sure the command is in the following format. \n python ./myrpal.py [-l] [-ast] [-st] filename")
-                sys.exit(1)
+    main(sys.argv)
