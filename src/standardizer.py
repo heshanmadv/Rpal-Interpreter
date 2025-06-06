@@ -25,7 +25,7 @@ def make_standardized_tree(root: ASTNode) -> ASTNode:
                  let                gamma
                 /   \               /    \    
                =     P   =>       lambda  E               
-              / \                /     \
+              / \                /      \'
              X   E              X       P
         '''
         child_0 = root.children[0]
