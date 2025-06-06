@@ -1,22 +1,101 @@
-**<h1>RPAL Interpreter</h1>**
+# RPAL Interpreter
 
-This is the final group project done for the CS3513 - Programming Languages module in Semester 04.
+This is an interpreter for the RPAL (Right-reference Pure Applicative Language), implemented as the final project for CS3513 - Programming Languages (Semester 4). The interpreter includes a full lexical analyzer, parser, AST and ST generator, and an evaluator via a CSE (Control Stack Environment) machine.
 
-<h2>Problem Description</h2>
-It is required to implement a lexical analyzer and a parser for the RPAL language. Refer RPAL_Lex.pdf for the lexical rules and RPAL_Grammar.pdf for the grammar details.<br>Output of the parser should be the Abstract Syntax Tree (AST) for the given input program. Then need to implement an algorithm to convert the Abstract Syntax Tree (AST) in to Standardize Tree (ST) and implement CSE machine.<br>The program should be able to read an input file which contains a RPAL program.Output of your program should match the output of “rpal.exe“ for the relevant program.
-<br>
-<br>
-<h3>Input and Output Requirements:</h3><br>
-  Your program should execute using the following <br>
-  <ul>
-    <li>For Python:
-      python .\myrpal.py file_name</li>
-  </ul> 
-Where file_name is the name of the file that has the RPAL program as the input.
+---
 
-Required switches:<br>
-<ul>
-  <li>-ast :  This switch prints the abstract syntax tree</li>
-  <li>-st  :  This switch prints the standardized tree</li>
-  <li>-l   :  This switch prints the input file content</li>
-</ul>
+## Features
+
+- Lexical analysis (tokenization)
+- Abstract Syntax Tree (AST) construction
+- Standardized Tree (ST) transformation
+- CSE Machine execution for evaluation
+- Matches the behavior of `rpal.exe`
+
+---
+
+## Project Structure
+
+```bash
+├── myrpal.py               # Main entry point
+├── src/
+│   ├── parser.py           # Recursive-descent parser
+│   ├── lexer.py            # Lexical analyzer
+│   ├── rpal_ast.py         # AST data structures and traversal
+│   ├── standardizer.py     # AST to ST conversion logic
+│   ├── csemachine.py       # CSE machine evaluator
+│   ├── rpal_token.py       # Token and TokenType definitions
+│   ├── screener.py         # Token cleanup and validation
+│   ├── structures.py       # CSE helper structures (Lambda, Delta, Tau, etc.)
+│   └── errors.py           # Error handling (lexical, syntax, tokenization)
+├── test_ast.py             # Pytest suite for AST validation
+├── test_st.py              # Pytest suite for ST validation
+├── Tests/                  # RPAL test programs
+```
+
+---
+
+## 💾 Usage
+
+Run the interpreter from the command line:
+
+```bash
+python .\myrpal.py [options] filename
+```
+
+### Options:
+
+- `-l` : Print the source code from the file
+- `-ast` : Print the Abstract Syntax Tree (AST)
+- `-st` : Print the Standardized Tree (ST)
+- No flags : Run the program and evaluate it using the CSE machine
+
+### Example:
+
+```bash
+python .\myrpal.py -ast -st Tests/8-t2
+```
+
+---
+
+## Running Tests
+
+The project uses `pytest` for testing the correctness of AST and ST outputs against expected results.
+
+### Step 1: Install dependencies
+
+```bash
+pip install pytest
+```
+
+### Step 2: Run all tests
+
+From the root directory:
+
+```bash
+pytest test_ast.py
+pytest test_st.py
+```
+
+Or run both together:
+
+```bash
+pytest
+```
+
+---
+
+## Test File Convention
+
+Each test case compares the interpreter's output with the expected output stored as strings. Input RPAL source code files are stored in the `Tests/` folder and used in:
+
+- `test_ast.py` → checks correctness of AST generation
+- `test_st.py` → checks correctness of ST standardization
+
+---
+
+## Authors
+
+This project was developed as part of the CS3513 module at the University of Moratuwa.
+
+---
