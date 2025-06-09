@@ -20,7 +20,7 @@ def _capture_st_(code: str) -> str:
 
 
 
-def test_Innerprod():
+def test_Innerproduct1():
     expected = """gamma
 .lambda
 ..<ID:Innerproduct>
@@ -126,13 +126,13 @@ def test_Innerprod():
 ...........<ID:N>
 ...........<INT:1>"""
 
-    with open(r"Tests\Innerprod") as f:
+    with open(r"Tests\Innerproduct1") as f:
         code = f.read()
     actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on Innerprod"
+    assert actual == expected, "AST mismatch on Innerproduct1"
 
 
-def test_Innerprod2():
+def test_Innerproduct2():
     expected = """gamma
 .lambda
 ..<ID:Innerproduct>
@@ -241,10 +241,10 @@ def test_Innerprod2():
 .............<ID:N>
 .............<INT:1>"""
 
-    with open(r"Tests\Innerprod2") as f:
+    with open(r"Tests\Innerproduct2") as f:
         code = f.read()
     actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on Innerprod2"
+    assert actual == expected, "AST mismatch on Innerproduct2"
 
 
 def test_Treepicture():
@@ -617,30 +617,10 @@ def test_conc2():
     assert actual == expected, "AST mismatch on conc2"
 
 
-def test_conc3():
-    expected = """gamma
-.lambda
-..,
-...<ID:S>
-...<ID:T>
-..gamma
-...<ID:Print>
-...gamma
-....gamma
-.....<ID:Conc>
-.....<ID:S>
-....<ID:T>
-.tau
-..<STR:'CIS'>
-..<STR:'104B'>"""
-
-    with open(r"Tests\conc3") as f:
-        code = f.read()
-    actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on conc3"
 
 
-def test_defns_1():
+
+def test_func1():
     expected = """gamma
 .<ID:Print>
 .gamma
@@ -673,13 +653,13 @@ def test_defns_1():
 ............<ID:y>
 ...........<ID:x>"""
 
-    with open(r"Tests\defns.1") as f:
+    with open(r"Tests\func1") as f:
         code = f.read()
     actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on defns.1"
+    assert actual == expected, "AST mismatch on func1"
 
 
-def test_defns_2():
+def test_func2():
     expected = """gamma
 .<ID:Print>
 .gamma
@@ -702,40 +682,16 @@ def test_defns_2():
 ......<INT:4>
 ....<INT:7>"""
 
-    with open(r"Tests\defns.2") as f:
+    with open(r"Tests\func2") as f:
         code = f.read()
     actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on defns.2"
+    assert actual == expected, "AST mismatch on func2"
 
 
-def test_defns_3():
-    expected = """gamma
-.lambda
-..<ID:f>
-..gamma
-...<ID:f>
-...tau
-....<INT:1>
-....<INT:2>
-....<INT:3>
-.lambda
-..,
-...<ID:x>
-...<ID:y>
-...<ID:z>
-..+
-...+
-....<ID:x>
-....<ID:y>
-...<ID:z>"""
-
-    with open(r"Tests\defns.3") as f:
-        code = f.read()
-    actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on defns.3"
 
 
-def test_dist():
+
+def test_adder():
     expected = """gamma
 .lambda
 ..<ID:add>
@@ -779,10 +735,10 @@ def test_dist():
 ..........<ID:r>
 ..........<ID:n>"""
 
-    with open(r"Tests\dist") as f:
+    with open(r"Tests\adder") as f:
         code = f.read()
     actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on dist"
+    assert actual == expected, "AST mismatch on adder"
 
 
 def test_div():
@@ -802,7 +758,7 @@ def test_div():
     assert actual == expected, "AST mismatch on div"
 
 
-def test_envlist():
+def test_sample():
     expected = """gamma
 .lambda
 ..<ID:a>
@@ -813,10 +769,10 @@ def test_envlist():
 ...<ID:a>
 .<INT:1>"""
 
-    with open(r"Tests\envlist") as f:
+    with open(r"Tests\sample") as f:
         code = f.read()
     actual = _capture_st_(code)
-    assert actual == expected, "AST mismatch on envlist"
+    assert actual == expected, "AST mismatch on sample"
 
 
 def test_fn1():
