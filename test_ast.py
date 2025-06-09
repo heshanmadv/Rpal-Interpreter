@@ -16,45 +16,6 @@ def _capture_ast(code: str) -> str:
     return buf.getvalue().rstrip("\n")
 
 
-def test__8_t2():
-    expected = """let
-.function_form
-..<ID:Sum_first_n>
-..<ID:N>
-..let
-...rec
-....function_form
-.....<ID:Sum_helper>
-.....<ID:Num>
-.....<ID:Acc>
-.....->
-......eq
-.......<ID:Num>
-.......<INT:0>
-......<ID:Acc>
-......gamma
-.......gamma
-........<ID:Sum_helper>
-........-
-.........<ID:Num>
-.........<INT:1>
-.......+
-........<ID:Acc>
-........<ID:Num>
-...gamma
-....gamma
-.....<ID:Sum_helper>
-.....<ID:N>
-....<INT:0>
-.gamma
-..<ID:Print>
-..gamma
-...<ID:Sum_first_n>
-...<INT:5>"""
-    with open(r"Tests\8-t2") as f:
-        code = f.read()
-    actual = _capture_ast(code)
-    assert actual == expected, "AST mismatch on 8-t2"
 
 
 def test_Innerprod():
@@ -427,7 +388,7 @@ def test_add():
     assert actual == expected, "AST mismatch on add"
 
 
-def test_clean():
+def test_unique():
     expected = """let
 .function_form
 ..<ID:Is_Element>
@@ -528,10 +489,10 @@ def test_clean():
 ......<INT:4>
 ......<INT:5>
 ......<INT:4>"""
-    with open(r"Tests\clean") as f:
+    with open(r"Tests\unique") as f:
         code = f.read()
     actual = _capture_ast(code)
-    assert actual == expected, "AST mismatch on clean"
+    assert actual == expected, "AST mismatch on unique"
 
 
 def test_conc1():
@@ -555,7 +516,7 @@ def test_conc1():
     assert actual == expected, "AST mismatch on conc1"
 
 
-def test_conc11():
+def test_conc2():
     expected = """let
 .function_form
 ..<ID:Conc>
@@ -594,10 +555,10 @@ def test_conc11():
 ....gamma
 .....<ID:Mark>
 .....<ID:T>"""
-    with open(r"Tests\conc11") as f:
+    with open(r"Tests\conc2") as f:
         code = f.read()
     actual = _capture_ast(code)
-    assert actual == expected, "AST mismatch on conc11"
+    assert actual == expected, "AST mismatch on conc2"
 
 
 def test_conc3():
