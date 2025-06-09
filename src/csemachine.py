@@ -1,23 +1,172 @@
+from __future__ import annotations
 from src.standardizer import standardize
-from src.node import *
-from src.environment import Environment
-from src.stack import Stack
-from src.structures import *
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Stack implementation for the CSE machine
+# ──────────────────────────────────────────────────────────────────────────────
+class Stack:
+    """
+    A simple stack wrapper around a Python list, used as the operand stack in the CSE machine.
+    """
+
+    def __init__(self, type):
+        self.type = type
+        self.stack = []
+
+     # Adds an element to the top of the stack
+
+    def push(self, item):
+        self.stack.append(item)
+
+    # Removes and returns the top element of the stack if it’s not empty
+    def pop(self):
+        if self.is_empty():
+            message = (
+                "Error: Attempted to pop from an empty CSE machine stack."
+                if self.type == "CSE"
+                else "Error: Attempted to pop from an empty AST construction stack."
+            )
+            print(message)
+            exit(1)
+        return self.stack.pop()
+
+    # Provides a string representation of the stack for easier inspection during debugging
+    def __repr__(self):
+        return str(self.stack)
+
+    # Checks whether the stack currently contains any elements
+    def is_empty(self):
+        return len(self.stack) == 0
+
+    # Allow index-based access to elements
+    def __getitem__(self, index):
+        return self.stack[index]
+
+    # Allow assignment to elements at specific indices
+    def __setitem__(self, index, value):
+        self.stack[index] = value
+
+    # Support reversed iteration through the stack
+    def __reversed__(self):
+        return reversed(self.stack)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Control-structure node classes (Lambda, Delta, Tau, Eta)
+# ──────────────────────────────────────────────────────────────────────────────
+class Lambda:
+    """
+    Represents a lambda instruction in the control structure.
+    Fields:
+      - number: unique index for this function
+      - bounded_variable: comma-separated string of formal parameter names
+      - environment: index of the environment in which this lambda was created
+    """
+
+    def __init__(self, number: int) -> None:
+        self.number: int = number
+        self.bounded_variable: str = ""  # e.g. "x" or "x,y,z"
+        self.environment: int = 0        # environment index
+
+    def __repr__(self) -> str:
+        return f"Λ({self.number}, vars={self.bounded_variable}, env=e_{self.environment})"
+
+
+class Delta:
+    """
+    Represents a delta (guard) instruction in the control structure.
+    Fields:
+      - number: unique index for this guard
+    """
+
+    def __init__(self, number: int) -> None:
+        self.number: int = number
+
+    def __repr__(self) -> str:
+        return f"Δ({self.number})"
+
+
+class Tau:
+    """
+    Represents a tuple-construction instruction in the control structure.
+    Fields:
+      - number: the arity of the tuple (how many elements to pop)
+    """
+
+    def __init__(self, number: int) -> None:
+        self.number: int = number
+
+    def __repr__(self) -> str:
+        return f"τ({self.number})"
+
+
+class Eta:
+    """
+    Represents an Eta (fixed-point) instruction in the control structure,
+    used for Y*-recursion.
+    Fields:
+      - number: the index of the original lambda to re-create
+      - bounded_variable: copied from the original Lambda
+      - environment: copied from the original Lambda
+    """
+
+    def __init__(self, number: int) -> None:
+        self.number: int = number
+        self.bounded_variable: str = ""
+        self.environment: int = 0
+
+    def __repr__(self) -> str:
+        return f"η({self.number}, vars={self.bounded_variable}, env=e_{self.environment})"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Environment class for the CSE machine
+# ──────────────────────────────────────────────────────────────────────────────
+class Environment():
+    """
+    Represents an environment in the CSE machine, which holds variables and child environments.
+    Fields:
+      - name: unique identifier for the environment (e.g., "e_0", "e_1", ...)
+      - variables: dictionary of variable names and their values
+      - children: list of child environments
+      - parent: reference to the parent environment
+    """
+
+    def __init__(self, number, parent):
+        self.name = "e_" + str(number)
+        self.variables = {}
+        self.children = []
+        self.parent = parent
+
+    # This function adds a child to the current environment.
+    def add_child(self, child):
+        self.children.append(child)
+        child.variables.update(self.variables)
+
+    # This function adds a variable to the current environment.
+    def add_variable(self, key, value):
+        self.variables[key] = value
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# The main CSEMachine
+# ──────────────────────────────────────────────────────────────────────────────
 control_structures = []
 count = 0
 control = []
-stack = Stack("CSE")                        # Stack for the CSE machine
+stack = Stack("CSE")          # Stack for the CSE machine
 environments = [Environment(0, None)]
 current_environment = 0
-builtInFunctions = ["Order", "Print", "print", "Conc", "Stern", "Stem", "Isinteger", "Istruthvalue", "Isstring", "Istuple", "Isfunction", "ItoS"]
+builtInFunctions = ["Order", "Print", "print", "Conc", "Stern", "Stem",
+                    "Isinteger", "Istruthvalue", "Isstring", "Istuple", "Isfunction", "ItoS"]
 print_present = False
 
 
 def generate_control_structure(root, i):
     global count
-    
-    while(len(control_structures) <= i):
+
+    while (len(control_structures) <= i):
         control_structures.append([])
 
     # When lambda is encountered, we have to generate a new control structure.
@@ -26,12 +175,12 @@ def generate_control_structure(root, i):
         left_child = root.children[0]
         if (left_child.value == ","):
             temp = Lambda(count)
-            
+
             x = ""
             for child in left_child.children:
                 x += child.value[4:-1] + ","
             x = x[:-1]
-            
+
             temp.bounded_variable = x
             control_structures[i].append(temp)
         else:
@@ -67,19 +216,21 @@ def generate_control_structure(root, i):
             generate_control_structure(child, i)
 
 # This function is used for tokens that begin with '<' and end with '>'.
+
+
 def lookup(name):
     name = name[1:-1]
     info = name.split(":")
-    
+
     if (len(info) == 1):
         value = info[0]
     else:
         data_type = info[0]
         value = info[1]
-    
+
         if data_type == "INT":
             return int(value)
-        
+
         # The rpal.exe program detects srings only when they begin with ' and end with '.
         # Our code must emulate this behaviour.
         elif data_type == "STR":
@@ -95,7 +246,7 @@ def lookup(name):
                     exit(1)
                 else:
                     return value
-            
+
     if value == "Y*":
         return "Y*"
     elif value == "nil":
@@ -104,11 +255,12 @@ def lookup(name):
         return True
     elif value == "false":
         return False
-    
+
+
 def built_in(function, argument):
     global print_present
-    
-    # The Order function returns the length of a tuple.  
+
+    # The Order function returns the length of a tuple.
     if (function == "Order"):
         order = len(argument)
         stack.push(order)
@@ -117,7 +269,7 @@ def built_in(function, argument):
     elif (function == "Print" or function == "print"):
         # We should print the output only when the 'Print' function is called in the program.
         print_present = True
-        
+
         # If there are escape characters in the string, we need to format it properly.
         if type(argument) == str:
             if "\\n" in argument:
@@ -149,7 +301,7 @@ def built_in(function, argument):
         else:
             stack.push(False)
 
-    # The Istruthvalue function checks if the given argument is a boolean value.               
+    # The Istruthvalue function checks if the given argument is a boolean value.
     elif (function == "Istruthvalue"):
         if (type(argument) == bool):
             stack.push(True)
@@ -176,8 +328,8 @@ def built_in(function, argument):
             return True
         else:
             False
-    
-    # The ItoS function converts integers to strings.        
+
+    # The ItoS function converts integers to strings.
     elif (function == "ItoS"):
         if (type(argument) == int):
             stack.push(str(argument))
@@ -185,15 +337,17 @@ def built_in(function, argument):
             print("Error: ItoS function can only accept integers.")
             exit()
 
+
 def apply_rules():
-    op = ["+", "-", "*", "/", "**", "gr", "ge", "ls", "le", "eq", "ne", "or", "&", "aug"]
+    op = ["+", "-", "*", "/", "**", "gr", "ge",
+          "ls", "le", "eq", "ne", "or", "&", "aug"]
     uop = ["neg", "not"]
 
     global control
     global current_environment
 
-    while(len(control) > 0):
-     
+    while (len(control) > 0):
+
         symbol = control.pop()
 
         # Rule 1
@@ -214,7 +368,7 @@ def apply_rules():
 
             if (type(stack_symbol_1) == Lambda):
                 current_environment = len(environments)
-                
+
                 lambda_number = stack_symbol_1.number
                 bounded_variable = stack_symbol_1.bounded_variable
                 parent_environment_number = stack_symbol_1.environment
@@ -226,7 +380,7 @@ def apply_rules():
 
                 # Rule 11
                 variable_list = bounded_variable.split(",")
-                
+
                 if (len(variable_list) > 1):
                     for i in range(len(variable_list)):
                         child.add_variable(variable_list[i], stack_symbol_2[i])
@@ -253,7 +407,7 @@ def apply_rules():
                 temp = Lambda(stack_symbol_1.number)
                 temp.bounded_variable = stack_symbol_1.bounded_variable
                 temp.environment = stack_symbol_1.environment
-                
+
                 control.append("gamma")
                 control.append("gamma")
                 stack.push(stack_symbol_2)
@@ -263,12 +417,12 @@ def apply_rules():
             # Built-in functions
             elif stack_symbol_1 in builtInFunctions:
                 built_in(stack_symbol_1, stack_symbol_2)
-              
+
         # Rule 5
         elif type(symbol) == str and (symbol[0:2] == "e_"):
             stack_symbol = stack.pop()
             stack.pop()
-            
+
             if (current_environment != 0):
                 for element in reversed(stack):
                     if (type(element) == str and element[0:2] == "e_"):
@@ -280,7 +434,7 @@ def apply_rules():
         elif (symbol in op):
             rand_1 = stack.pop()
             rand_2 = stack.pop()
-            if (symbol == "+"): 
+            if (symbol == "+"):
                 stack.push(rand_1 + rand_2)
             elif (symbol == "-"):
                 stack.push(rand_1 - rand_2)
@@ -344,43 +498,46 @@ def apply_rules():
 
     # Lambda expression becomes a lambda closure when its environment is determined.
     if type(stack[0]) == Lambda:
-        stack[0] = "[lambda closure: " + str(stack[0].bounded_variable) + ": " + str(stack[0].number) + "]"
-         
-    if type(stack[0]) == tuple:          
-        # The rpal.exe program prints the boolean values in lowercase. Our code must emulate this behaviour. 
+        stack[0] = "[lambda closure: " + \
+            str(stack[0].bounded_variable) + ": " + str(stack[0].number) + "]"
+
+    if type(stack[0]) == tuple:
+        # The rpal.exe program prints the boolean values in lowercase. Our code must emulate this behaviour.
         for i in range(len(stack[0])):
             if type(stack[0][i]) == bool:
                 stack[0] = list(stack[0])
                 stack[0][i] = str(stack[0][i]).lower()
                 stack[0] = tuple(stack[0])
-                
+
         # The rpal.exe program does not print the comma when there is only one element in the tuple.
-        # Our code must emulate this behaviour.  
+        # Our code must emulate this behaviour.
         if len(stack[0]) == 1:
             stack[0] = "(" + str(stack[0][0]) + ")"
-        
+
         # The rpal.exe program does not print inverted commas when an element in the tuple is a string.
-        # Our code must emulate this behaviour too. 
-        else: 
+        # Our code must emulate this behaviour too.
+        else:
             if any(type(element) == str for element in stack[0]):
                 temp = "("
                 for element in stack[0]:
                     temp += str(element) + ", "
                 temp = temp[:-2] + ")"
                 stack[0] = temp
-                
-    # The rpal.exe program prints the boolean values in lowercase. Our code must emulate this behaviour.    
+
+    # The rpal.exe program prints the boolean values in lowercase. Our code must emulate this behaviour.
     if stack[0] == True or stack[0] == False:
         stack[0] = str(stack[0]).lower()
 
 # The following function is called from the myrpal.py file.
+
+
 def get_result(file_name):
     global control
 
     st = standardize(file_name)
-    
-    generate_control_structure(st,0) 
-    
+
+    generate_control_structure(st, 0)
+
     control.append(environments[0].name)
     control += control_structures[0]
 

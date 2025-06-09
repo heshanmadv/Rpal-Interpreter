@@ -1,56 +1,38 @@
-from src.lexical_analyzer import create_tokens
+from typing import List, Tuple, Optional
+from src.lexer import Lexer
+from src.rpal_token import Token, TokenType
+from src.errors import LexicalError
 
-def screener(file_name):
-    # List of keywords in RPAL
-    keywords = [
-         "let", "in", "where", "rec", "fn",
-        "aug", "or", "not", "gr", "ge", "ls", "le",
-        "eq", "ne", "true", "false", "nil", "dummy",
-        "within", "and"
-        ]
-    
 
-    has_invalid_token = False
-    invalid_token = None
-    token_list, characters = [], []
-    
-    try:
-        with open(file_name, 'r') as file:
-            characters = list(file.read())  # Read entire content at once and convert to list of characters
-        token_list = create_tokens(characters)
+class Screener:
+    """
+    Takes a list of Tokens, removes DELETE tokens, turns identifiers into KEYWORDs when needed,
+    and reports any invalid tokens.
+    """
 
-    except FileNotFoundError:
-        print(f"Error: The file '{file_name}' was not found.")
-        exit(1)
-        
-    except Exception as e:
-        print(f"Unexpected error while reading the file: {e}")
-        exit(1)
+    def __init__(self, tokens: List[Token]) -> None:
+        self.tokens: List[Token] = tokens
 
-    
-    # Iterate through token list in reverse order. This reverse iteration will correctly handle the consequent <DELETE>s
-    for i in range(len(token_list) - 1, -1, -1):
-      
-        token = token_list[i]
+    def screen(self) -> Tuple[List[Token], bool, Optional[Token]]:
+        """
+        Returns (filtered_tokens, has_invalid, first_invalid_token).
+        Any Token of type TokenType.INVALID triggers has_invalid=True.
+        """
+        filtered: List[Token] = []
+        first_invalid: Optional[Token] = None
 
-        
-        # If the token is an identifier and it is a keyword, it should be marked as a keyword.
-        if token.type == "<IDENTIFIER>" and token.content in keywords:
-            token.make_keyword()
-        
-        # If the token is should be deleted, it should be removed from the list.
-        if token.type == "<DELETE>" or token.content == "\n":            
-            token_list.remove(token)
-            
-        # If there are invalid tokens, the first invalid token will be marked as the invalid token.    
-        if token.type == "<INVALID>":
-            if has_invalid_token == False:
-                invalid_token = token
-                
-            has_invalid_token = True
-            
-    # If the previous last token is removed in the previous loop, the last token will be the last token in the list.
-    if len(token_list) > 0:
-        token_list[-1].is_last_token = True
-        
-    return token_list, has_invalid_token, invalid_token
+        for tok in self.tokens:
+            if tok.type == TokenType.INVALID:
+                if first_invalid is None:
+                    first_invalid = tok
+                continue
+            if tok.type == TokenType.DELETE:
+                continue
+            # Any identifier matching a keyword list should be made a KEYWORD
+            if tok.type == TokenType.IDENTIFIER and tok.content in Lexer.KEYWORDS:
+                tok.make_keyword()
+            filtered.append(tok)
+
+        if first_invalid:
+            return (filtered, True, first_invalid)
+        return (filtered, False, None)

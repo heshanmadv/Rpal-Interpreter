@@ -1,15 +1,22 @@
+from __future__ import annotations
+from src.rpal_ast import ASTNode
+from src.parser import Parser
 
-from src.rpal_parser import *
 
-# The standardize function takes a file name as input and returns a standardized tree.
-def standardize(file_name):
-    ast = parse(file_name)
-    st = make_standardized_tree(ast)
-    
-    return st
+def standardize(source_code: str) -> ASTNode:
+    """
+    Parses the source into an AST, then applies make_standardized_tree to obtain an ST.
+    """
+    parser = Parser(source_code)
+    ast_root = parser.parse()
+    return make_standardized_tree(ast_root)
 
-# The make_standardized_tree function takes a root node as input and returns a standardized tree.
-def make_standardized_tree(root):
+
+def make_standardized_tree(root: ASTNode) -> ASTNode:
+    """
+    Recursively descends the AST, rewrites syntactic sugar into core primitives.
+    """
+
     for child in root.children:
         make_standardized_tree(child)
 
@@ -18,7 +25,7 @@ def make_standardized_tree(root):
                  let                gamma
                 /   \               /    \    
                =     P   =>       lambda  E               
-              / \                /     \
+              / \                /      \'
              X   E              X       P
         '''
         child_0 = root.children[0]
@@ -37,8 +44,8 @@ def make_standardized_tree(root):
                      / \             /  \
                     X   E           X    P
         '''
-        child_0 = root.children[0] 
-        child_1 = root.children[1] 
+        child_0 = root.children[0]
+        child_1 = root.children[1]
 
         root.children[0] = child_1.children[1]
         root.children[1].children[1] = child_0
@@ -58,7 +65,7 @@ def make_standardized_tree(root):
 
         current_node = root
         for i in range(len(root.children) - 1):
-            lambda_node = Node("lambda")
+            lambda_node = ASTNode("lambda")
             child = root.children.pop(1)
             lambda_node.children.append(child)
             current_node.children.append(lambda_node)
@@ -72,7 +79,7 @@ def make_standardized_tree(root):
 
         current_node = root
         for i in range(len(root.children) - 1):
-            lambda_node = Node("lambda")
+            lambda_node = ASTNode("lambda")
             child = root.children.pop(1)
             lambda_node.children.append(child)
             current_node.children.append(lambda_node)
@@ -91,9 +98,9 @@ def make_standardized_tree(root):
                                          X1    E2    
         '''
         child_0 = root.children[1].children[0]
-        child_1 = Node("gamma")
+        child_1 = ASTNode("gamma")
 
-        child_1.children.append(Node("lambda"))
+        child_1.children.append(ASTNode("lambda"))
         child_1.children.append(root.children[0].children[1])
         child_1.children[0].children.append(root.children[0].children[0])
         child_1.children[0].children.append(root.children[1].children[1])
@@ -109,11 +116,11 @@ def make_standardized_tree(root):
                 E1  N  E2    =>    gamma  E2
                                    /   \
                                   N     E1
-        '''                
+        '''
         expression = root.children.pop(0)
         identifier = root.children[0]
 
-        gamma_node = Node("gamma")
+        gamma_node = ASTNode("gamma")
         gamma_node.children.append(identifier)
         gamma_node.children.append(expression)
 
@@ -128,10 +135,10 @@ def make_standardized_tree(root):
                     =++    =>     ,   tau
                     / \           |    |
                    X   E         X++  E++
-                
+
         '''
-        child_0 = Node(",")
-        child_1 = Node("tau")
+        child_0 = ASTNode(",")
+        child_1 = ASTNode("tau")
 
         for child in root.children:
             child_0.children.append(child.children[0])
@@ -157,8 +164,8 @@ def make_standardized_tree(root):
         temp = root.children.pop()
         temp.value = "lambda"
 
-        gamma_node = Node("gamma")
-        gamma_node.children.append(Node("<Y*>"))
+        gamma_node = ASTNode("gamma")
+        gamma_node.children.append(ASTNode("<Y*>"))
         gamma_node.children.append(temp)
 
         root.children.append(temp.children[0])
