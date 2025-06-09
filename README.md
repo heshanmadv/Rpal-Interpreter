@@ -53,7 +53,7 @@ python .\myrpal.py [options] filename
 ### Example:
 
 ```bash
-python .\myrpal.py -ast -st Tests/8-t2
+python .\myrpal.py -ast -st Tests/add
 ```
 
 ---
